@@ -1,0 +1,25 @@
+[project]
+name = "local-agent-studio-backend"
+version = "0.4.0"
+description = "Local service for Local Agent Studio"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.32,<1",
+  "httpx>=0.28,<1",
+  "psutil>=6.1,<8",
+  "cryptography>=44,<47",
+  "pydantic>=2.10,<3",
+  "python-multipart>=0.0.20,<1",
+  "python-docx>=1.1,<2",
+  "openpyxl>=3.1,<4"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

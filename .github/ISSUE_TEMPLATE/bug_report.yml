@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible Local Agent Studio problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove private prompts, file contents, credentials, and personal paths from logs.
+  - type: input
+    id: version
+    attributes:
+      label: Local Agent Studio version
+      placeholder: 0.5.0
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware, engine, and model
+      placeholder: 16 GB RAM; Intel Iris Xe; Ollama; llama3.2:3b
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: "1. Open…\n2. Select…\n3. Run…"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

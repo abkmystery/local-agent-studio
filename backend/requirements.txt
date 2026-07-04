@@ -1,0 +1,13 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.32,<1
+httpx>=0.28,<1
+psutil>=6.1,<8
+cryptography>=44,<47
+pydantic>=2.10,<3
+python-multipart>=0.0.20,<1
+python-docx>=1.1,<2
+openpyxl>=3.1,<4
+mcp>=1.27,<2
+pytest>=8.3,<10
+pytest-asyncio>=0.25,<2
+pyinstaller>=6.11,<7

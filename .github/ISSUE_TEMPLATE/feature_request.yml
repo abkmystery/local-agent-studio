@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a focused improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What user problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: flow
+    attributes:
+      label: Describe the simplest user flow
+    validations:
+      required: true
+  - type: dropdown
+    id: privacy
+    attributes:
+      label: Does it require data to leave the PC?
+      options:
+        - No
+        - Optional and explicit
+        - Yes
+    validations:
+      required: true

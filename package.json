@@ -1,0 +1,102 @@
+{
+  "name": "local-agent-studio",
+  "version": "0.5.0",
+  "private": true,
+  "description": "Local-first desktop studio for building AI agents and visual multi-agent workflows",
+  "keywords": [
+    "local-ai",
+    "ai-agents",
+    "multi-agent",
+    "agentic-workflows",
+    "workflow-automation",
+    "local-llm",
+    "llama-cpp",
+    "ollama",
+    "lm-studio",
+    "gemini"
+  ],
+  "author": "Local Agent Studio contributors",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11"
+  },
+  "main": "dist/main/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"vite --config vite.config.ts\" \"tsc -p tsconfig.main.json --watch\" \"wait-on tcp:5173 file:dist/main/main.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "pnpm clean && tsc -p tsconfig.main.json && vite build --config vite.config.ts && node scripts/verify-build.mjs",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
+    "test": "vitest run",
+    "backend:test": "python -m pytest backend/tests -q",
+    "backend:bundle": "powershell -ExecutionPolicy Bypass -File scripts/build_backend.ps1",
+    "package:win": "pnpm build && pnpm backend:bundle && electron-builder --win nsis",
+    "package:win:unsigned": "pnpm build && pnpm backend:bundle && electron-builder --win nsis --config.win.signAndEditExecutable=false",
+    "clean": "rimraf dist release backend-dist"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.8.5",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "org.localagentstudio.desktop",
+    "productName": "Local Agent Studio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".build/backend-dist/local-agent-backend",
+        "to": "backend",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "vendor/llama.cpp",
+        "to": "runtime/llama.cpp",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "brand/icon.png"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png",
+      "artifactName": "Local-Agent-Studio-${version}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
