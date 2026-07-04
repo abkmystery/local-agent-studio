@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -27,7 +29,15 @@ class OpenAICompatibleProvider(InferenceProvider):
             detail = self.detail if available else f"API returned HTTP {response.status_code}"
         except (httpx.HTTPError, OSError):
             available = False
-            detail = self.detail
+            installed = self.id == "lm_studio" and any(path.exists() for path in (
+                Path(os.environ.get("LOCALAPPDATA", "")) / "LM-Studio",
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "LM Studio" / "LM Studio.exe",
+                Path(os.environ.get("PROGRAMFILES", "")) / "LM Studio" / "LM Studio.exe",
+            ))
+            detail = (
+                "LM Studio is installed, but its Local Server is off. Start it in Developer > Local Server, then refresh."
+                if installed else self.detail
+            )
         return ProviderStatus(
             id=self.id,
             name=self.name,

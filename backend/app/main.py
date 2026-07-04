@@ -81,7 +81,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scheduler_task.cancel()
         await providers.close()
 
-    app = FastAPI(title="Local Agent Studio", version="0.5.0", lifespan=lifespan)
+    app = FastAPI(title="Local Agent Studio", version="0.5.1", lifespan=lifespan)
     app.state.settings = settings
     app.state.database = database
     app.state.repositories = repositories

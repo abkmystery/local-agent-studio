@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import shutil
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -22,13 +25,23 @@ class OllamaProvider(InferenceProvider):
             available = response.status_code == 200
         except (httpx.HTTPError, OSError):
             available = False
+        installed = bool(
+            shutil.which("ollama")
+            or (Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe").is_file()
+        )
         return ProviderStatus(
             id=self.id,
             name=self.name,
             kind="external",
             available=available,
             base_url=self.base_url,
-            detail="Ready" if available else "Not detected. Install or start Ollama to connect.",
+            detail=(
+                "Ready"
+                if available else
+                "Ollama is installed, but its local service is not responding. Open Ollama and refresh."
+                if installed else
+                "Ollama is not installed. Use the official installer to add it."
+            ),
             license_name="MIT",
             redistributable=True,
         )

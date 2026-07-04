@@ -22,6 +22,33 @@ const providerCopy: Record<string, { title: string; summary: string; badge: stri
   lm_studio: { title: 'LM Studio', summary: 'Connect to LM Studio’s local server and downloaded models.', badge: 'Local · external app' },
 };
 
+const providerDefaults: Record<string, ProviderStatus> = {
+  gemini: { id: 'gemini', name: 'Gemini 3.5 Flash', kind: 'external', available: false, base_url: 'https://generativelanguage.googleapis.com', detail: 'Choose this option to connect Google AI Studio.', license_name: 'Google Gemini API terms', redistributable: false },
+  llama_cpp: { id: 'llama_cpp', name: 'Built-in llama.cpp', kind: 'embedded', available: false, base_url: 'http://127.0.0.1', detail: 'Install the built-in runtime to continue.', license_name: 'MIT', redistributable: true },
+  ollama: { id: 'ollama', name: 'Ollama', kind: 'external', available: false, base_url: 'http://127.0.0.1:11434', detail: 'Ollama has not been detected yet.', license_name: 'MIT', redistributable: true },
+  lm_studio: { id: 'lm_studio', name: 'LM Studio', kind: 'external', available: false, base_url: 'http://127.0.0.1:1234', detail: 'LM Studio has not been detected yet.', license_name: 'Proprietary desktop / MIT SDKs', redistributable: false },
+};
+
+export function completeProviderChoices(providers: ProviderStatus[]): ProviderStatus[] {
+  return ['gemini', 'llama_cpp', 'ollama', 'lm_studio'].map(
+    (id) => providers.find((provider) => provider.id === id) ?? providerDefaults[id],
+  );
+}
+
+export function providerIsReady(
+  providerId: string,
+  providers: ProviderStatus[],
+  models: ModelDescriptor[],
+  geminiConfigured = false,
+): boolean {
+  const live = providers.find((provider) => provider.id === providerId)?.available ?? false;
+  if (providerId === 'gemini') return live || geminiConfigured || models.some((model) => model.provider_id === 'gemini');
+  if (providerId === 'ollama' || providerId === 'lm_studio') {
+    return live || models.some((model) => model.provider_id === providerId);
+  }
+  return live;
+}
+
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
   const [hardware, setHardware] = useState<Hardware>();
@@ -41,10 +68,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [loadingSetup, setLoadingSetup] = useState(true);
 
   const orderedProviders = useMemo(
-    () => ['gemini', 'llama_cpp', 'ollama', 'lm_studio'].map((id) => providers.find((provider) => provider.id === id)).filter(Boolean) as ProviderStatus[],
+    () => completeProviderChoices(providers),
     [providers],
   );
-  const selectedProvider = providers.find((provider) => provider.id === selectedProviderId);
+  const selectedProvider = orderedProviders.find((provider) => provider.id === selectedProviderId);
   const providerModels = models.filter((model) => model.provider_id === selectedProviderId);
 
   async function refreshEnvironment(providerId = selectedProviderId) {
@@ -250,7 +277,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
   if (!hardware) return <div className="wizard-screen"><div className="wizard-card compact-wizard"><Logo size={68} className="wizard-logo" /><h1>Checking this PC</h1><p className="lead">This stays on your computer and normally takes only a few seconds.</p>{loadingSetup ? <Loading label="Reading this PC privately…" /> : <><Notice kind="error">{error || 'The hardware check could not finish.'}</Notice><div className="button-row"><button className="secondary" onClick={useSafeHardwareDefaults}>Continue with safe defaults</button><button className="primary" onClick={() => void loadSetup()}>Try hardware check again</button></div></>}</div></div>;
   const profile = hardware.recommended_profile.replace('_', ' ');
-  const providerReady = Boolean(selectedProvider?.available);
+  const providerReady = providerIsReady(selectedProviderId, providers, models, geminiConfig?.configured);
   const selectedReady = Boolean(selected && selected.provider_id === selectedProviderId && providerReady);
 
   return <div className="wizard-screen"><div className="wizard-card">
@@ -278,8 +305,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
       {selectedProviderId === 'gemini' && !geminiConfig?.configured && <section className="setup-panel cloud-setup"><div className="setup-panel-head"><Cloud /><div><h3>Connect Gemini in three small steps</h3><p>Google handles the account. Local Agent Studio stores only the API key, encrypted for this Windows account.</p></div></div><ol className="setup-steps"><li><span>1</span><div><strong>Open Google AI Studio and sign in</strong><small>A new account usually receives a default project and API key after accepting Google’s terms.</small><a className="secondary link-button" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Open Google AI Studio <ExternalLink size={14} /></a></div></li><li><span>2</span><div><strong>Create or copy a Gemini API key</strong><small>Use a key restricted to the Gemini API. Do not paste your Google password here.</small></div></li><li><span>3</span><div><strong>Paste the API key below</strong><label>Gemini API key<input type="password" value={geminiKey} onChange={(event) => setGeminiKey(event.target.value)} autoComplete="off" placeholder="Paste the key from AI Studio" /></label><button className="primary" disabled={busy || geminiKey.trim().length < 20} onClick={() => void connectGemini()}><KeyRound size={16} /> {busy ? 'Verifying…' : 'Verify and connect'}</button></div></li></ol><Notice><span>Gemini is not local: selected prompts and outputs go to Google. Google lists free-tier usage, but quotas vary by project and free-tier content may be used to improve Google products. <a href="https://aistudio.google.com/usage" target="_blank" rel="noreferrer">View your live usage</a>.</span></Notice></section>}
       {selectedProviderId === 'gemini' && geminiConfig?.configured && <Notice kind="success"><span><strong>Gemini 3.5 Flash is connected.</strong> The key is encrypted locally and never shown again.</span></Notice>}
       {selectedProviderId === 'llama_cpp' && !providerReady && <section className="setup-panel"><h3>Install the built-in local engine</h3><p>No administrator access is required. The runtime is downloaded from the official llama.cpp release and verified.</p><button className="primary" disabled={['discovering', 'downloading', 'installing'].includes(runtimeInstall?.status ?? '')} onClick={() => void installLlamaCpp()}>{runtimeInstall && !['idle', 'failed'].includes(runtimeInstall.status) ? `${Math.round(runtimeInstall.progress * 100)}% · ${runtimeInstall.detail}` : 'Install llama.cpp safely'}</button></section>}
-      {selectedProviderId === 'ollama' && !providerReady && <Notice kind="error"><span>Ollama is not running. <a href="https://ollama.com/download/windows" target="_blank" rel="noreferrer">Install or open Ollama</a>, then select this card again to refresh.</span></Notice>}
-      {selectedProviderId === 'lm_studio' && !providerReady && <Notice kind="error"><span>LM Studio’s local server is not running. <a href="https://lmstudio.ai/download" target="_blank" rel="noreferrer">Open LM Studio</a>, start its local API server, then refresh.</span></Notice>}
+      {selectedProviderId === 'ollama' && !providerReady && <Notice kind="error"><span>{selectedProvider?.detail || 'Ollama is not responding.'} <a href="https://ollama.com/download/windows" target="_blank" rel="noreferrer">Install or open Ollama</a>, then select this card again to refresh.</span></Notice>}
+      {selectedProviderId === 'lm_studio' && !providerReady && <Notice kind="error"><span>{selectedProvider?.detail || 'LM Studio’s local server is not responding.'} <a href="https://lmstudio.ai/download" target="_blank" rel="noreferrer">Open LM Studio</a>, start its local API server, then select this card again to refresh.</span></Notice>}
       {error && <Notice kind="error">{error}</Notice>}
       <div className="button-row"><button className="secondary" onClick={() => setStep(0)}>Back</button><button className="primary" disabled={!selectedProviderId || !providerReady} onClick={() => setStep(2)}>Choose a model <ArrowRight size={18} /></button></div>
     </>}

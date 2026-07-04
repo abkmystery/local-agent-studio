@@ -56,6 +56,42 @@ def test_hardware_and_provider_preflight(client: TestClient) -> None:
     assert starter["size_bytes"] < 1_000_000_000
 
 
+def test_one_failed_provider_probe_cannot_remove_setup_choices(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def broken_status():
+        raise RuntimeError("simulated detection failure")
+
+    monkeypatch.setattr(client.app.state.providers.get("gemini"), "status", broken_status)
+    response = client.get("/api/providers", headers=HEADERS)
+    assert response.status_code == 200
+    values = response.json()
+    assert {item["id"] for item in values} == {"gemini", "llama_cpp", "ollama", "lm_studio"}
+    gemini = next(item for item in values if item["id"] == "gemini")
+    assert gemini["available"] is False
+    assert "failed safely" in gemini["detail"]
+
+
+def test_one_failed_model_probe_cannot_hide_other_provider_models(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def broken_models():
+        raise RuntimeError("simulated model discovery failure")
+
+    async def ollama_models():
+        from backend.app.schemas import ModelDescriptor
+        return [ModelDescriptor(
+            id="qwen:test", name="Qwen test", provider_id="ollama",
+            publisher="Test", license_name="Apache-2.0", installed=True,
+        )]
+
+    monkeypatch.setattr(client.app.state.providers.get("gemini"), "models", broken_models)
+    monkeypatch.setattr(client.app.state.providers.get("ollama"), "models", ollama_models)
+    response = client.get("/api/models", headers=HEADERS)
+    assert response.status_code == 200
+    assert any(item["provider_id"] == "ollama" for item in response.json())
+
+
 def test_gemini_key_is_verified_and_encrypted(client: TestClient, tmp_path: Path) -> None:
     provider = client.app.state.providers.get("gemini")
 

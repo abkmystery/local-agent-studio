@@ -219,6 +219,11 @@ def main() -> None:
         cdp.click_button("Restart guide"); cdp.wait_text("Your agent studio, without the setup maze", 20)
         cdp.click_button("Choose how your agents think"); cdp.wait_text("Pick an AI provider")
         assert cdp.evaluate("document.querySelectorAll('.provider-choice-grid > button').length") == 4
+        cdp.click_button("Connect free-tier Gemini")
+        cdp.wait_text("Connect Gemini in three small steps")
+        cdp.wait_text("Open Google AI Studio and sign in")
+        assert cdp.evaluate("Boolean(document.querySelector('input[type=password][placeholder*=\"AI Studio\"]'))")
+        assert cdp.evaluate("Boolean(document.querySelector('a[href*=\"aistudio.google.com/app/apikey\"]'))")
         checks.append("Onboarding")
 
         capture = cdp.call("Page.captureScreenshot", {"format": "png", "fromSurface": True})

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.1 - 2026-07-04
+
+- Kept all four first-run provider choices visible even when one provider probe
+  fails or returns incomplete data.
+- Added direct packaged-UI coverage for the Gemini setup guide, API-key field,
+  and Google AI Studio link.
+- Treated successful Ollama or LM Studio model discovery as stronger evidence
+  than a stale health probe, so usable local models are no longer blocked.
+- Distinguished an installed local app with its server stopped from an app that
+  is not installed.
+- Isolated provider and model discovery failures so one integration cannot hide
+  the other providers or their models.
+
 ## 0.5.0 - 2026-07-04
 
 - Added studio-wide master controls and narrower per-agent permissions for

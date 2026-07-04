@@ -28,14 +28,38 @@ class ProviderManager:
         self.semaphore = asyncio.Semaphore(1)
 
     async def statuses(self) -> list[ProviderStatus]:
-        return list(await asyncio.gather(*(provider.status() for provider in self.providers.values())))
+        providers = list(self.providers.values())
+        results = await asyncio.gather(*(provider.status() for provider in providers), return_exceptions=True)
+        statuses: list[ProviderStatus] = []
+        for provider, result in zip(providers, results, strict=True):
+            if isinstance(result, BaseException):
+                statuses.append(ProviderStatus(
+                    id=provider.id,
+                    name=provider.name,
+                    kind="embedded" if provider.id == "llama_cpp" else "external",
+                    available=False,
+                    base_url=str(getattr(provider, "base_url", "")),
+                    detail=f"Detection failed safely: {type(result).__name__}",
+                    license_name=str(getattr(provider, "license_name", "Provider terms")),
+                    redistributable=bool(getattr(provider, "redistributable", False)),
+                ))
+            else:
+                statuses.append(result)
+        return statuses
 
     async def models(self, provider_id: str | None = None) -> list[ModelDescriptor]:
         selected = (
             [self.get(provider_id)] if provider_id else list(self.providers.values())
         )
-        results = await asyncio.gather(*(provider.models() for provider in selected))
-        return [model for group in results for model in group]
+        results = await asyncio.gather(
+            *(provider.models() for provider in selected), return_exceptions=True
+        )
+        return [
+            model
+            for group in results
+            if not isinstance(group, BaseException)
+            for model in group
+        ]
 
     def get(self, provider_id: str) -> InferenceProvider:
         try:

@@ -37,6 +37,14 @@ try {
   }
   if (-not $healthy) { throw 'The packaged backend did not become healthy.' }
 
+  $providers = Invoke-StudioJson -Method GET -Path '/api/providers'
+  foreach ($requiredProvider in @('gemini', 'llama_cpp', 'ollama', 'lm_studio')) {
+    if ($requiredProvider -notin $providers.id) { throw "Packaged provider missing: $requiredProvider" }
+  }
+  $models = Invoke-StudioJson -Method GET -Path '/api/models'
+  $ollama = $providers | Where-Object id -eq 'ollama'
+  $lmStudio = $providers | Where-Object id -eq 'lm_studio'
+
   $tools = Invoke-StudioJson -Method GET -Path '/api/tools'
   foreach ($required in @('read_file', 'create_word', 'create_excel', 'send_email')) {
     if ($required -notin $tools.id) { throw "Packaged tool missing: $required" }
@@ -89,6 +97,11 @@ try {
   Invoke-StudioJson -Method DELETE -Path "/api/workflows/$($workflow.id)" | Out-Null
   Write-Output ([PSCustomObject]@{
     version = $health.version
+    providers = $providers.Count
+    ollama_available = $ollama.available
+    ollama_models = @($models | Where-Object provider_id -eq 'ollama').Count
+    lm_studio_available = $lmStudio.available
+    lm_studio_detail = $lmStudio.detail
     tools = $tools.Count
     workflow_status = $completed.status
     word_bytes = (Get-Item $word).Length
