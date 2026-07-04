@@ -143,7 +143,7 @@ After packaging, validate the real frozen backend and Electron interface:
 
 ```powershell
 .\scripts\smoke_packaged_backend.ps1
-.\scripts\audit_packaged_ui.ps1
+.\.venv\Scripts\python.exe .\scripts\audit_packaged_ui.py
 ```
 
 Build an unsigned local test installer:

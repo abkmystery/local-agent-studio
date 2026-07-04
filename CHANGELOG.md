@@ -15,6 +15,11 @@
   approval-bound calls.
 - Added a plain-language disclaimer and expanded the threat model and user
   guide for executable extensions, backups, and external data transfer.
+- Replaced the fragile Electron audit with a deterministic, timeout-bounded
+  packaged-app test covering onboarding, agents, permissions, attachments,
+  workflow editing, functions, runs, resources, and settings.
+- Switched the bundled backend from self-extracting one-file packaging to a
+  fast-start directory bundle to eliminate repeated extraction delays.
 
 ## 0.4.0 - 2026-07-04
 
