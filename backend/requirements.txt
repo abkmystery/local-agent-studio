@@ -9,5 +9,5 @@ python-docx>=1.1,<2
 openpyxl>=3.1,<4
 mcp>=1.27,<2
 pytest>=8.3,<10
-pytest-asyncio>=0.25,<2
+pytest-asyncio>=1.4.0,<2
 pyinstaller>=6.11,<7
