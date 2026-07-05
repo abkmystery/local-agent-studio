@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.2 - 2026-07-04
+
+- Added an explicit per-node choice for Send Email: ask every time or send
+  automatically for that workflow node. Other consequential tools remain
+  approval-gated.
+- Replaced raw Gmail SMTP authentication failures with App Password setup
+  guidance and normalized spaces in pasted Gmail App Passwords.
+- Made each agent's provider and model visible in workflow agent selectors so
+  cloud and local agents can be intentionally combined.
+- Added executed scenario coverage for Gemini-to-Ollama handoffs, manual email
+  approval, automatic email sending, Gmail authentication guidance, and the
+  non-bypassability of file-write approvals.
+- Expanded the packaged UI audit to configure Send Email approval behavior and
+  verify a cross-provider agent appears in the workflow editor.
+
 ## 0.5.1 - 2026-07-04
 
 - Kept all four first-run provider choices visible even when one provider probe

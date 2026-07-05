@@ -162,10 +162,18 @@ class ToolRegistry:
             return str(arguments.get("method", "GET")).upper() not in {"GET", "HEAD", "OPTIONS"}
         return False
 
-    async def execute(self, tool_id: str, arguments: dict[str, Any], *, approved: bool = False) -> Any:
+    async def execute(
+        self,
+        tool_id: str,
+        arguments: dict[str, Any],
+        *,
+        approved: bool = False,
+        allow_without_approval: bool = False,
+    ) -> Any:
         if tool_id not in self.handlers:
             raise ValueError(f"Unknown tool: {tool_id}")
-        if self.requires_approval(tool_id, arguments) and not approved:
+        automatic_email = tool_id == "send_email" and allow_without_approval
+        if self.requires_approval(tool_id, arguments) and not approved and not automatic_email:
             raise ApprovalRequired(tool_id, arguments, f"{self.definitions[tool_id].name} needs your approval")
         return await self.handlers[tool_id](arguments)
 
@@ -421,17 +429,36 @@ class ToolRegistry:
         host = str(config["host"])
         port = int(config.get("port", 465))
         context = ssl.create_default_context()
-        if config.get("security") == "starttls":
-            with smtplib.SMTP(host, port, timeout=30) as smtp:
-                smtp.ehlo()
-                smtp.starttls(context=context)
-                smtp.ehlo()
-                smtp.login(str(config["username"]), str(config["password"]))
-                smtp.send_message(message)
-        else:
-            with smtplib.SMTP_SSL(host, port, timeout=30, context=context) as smtp:
-                smtp.login(str(config["username"]), str(config["password"]))
-                smtp.send_message(message)
+        try:
+            if config.get("security") == "starttls":
+                with smtplib.SMTP(host, port, timeout=30) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls(context=context)
+                    smtp.ehlo()
+                    smtp.login(str(config["username"]), str(config["password"]))
+                    smtp.send_message(message)
+            else:
+                with smtplib.SMTP_SSL(host, port, timeout=30, context=context) as smtp:
+                    smtp.login(str(config["username"]), str(config["password"]))
+                    smtp.send_message(message)
+        except smtplib.SMTPAuthenticationError as error:
+            provider = str(config.get("provider", "custom"))
+            if provider == "gmail":
+                detail = (
+                    "Gmail rejected the login. Use a Google App Password, not your normal Google password. "
+                    "Turn on 2-Step Verification, create a 16-character App Password at "
+                    "myaccount.google.com/apppasswords, save it in Settings, then send a test email."
+                )
+            elif provider == "yahoo":
+                detail = "Yahoo rejected the login. Create and save a Yahoo app password, then send a test email."
+            elif provider == "outlook":
+                detail = (
+                    "Microsoft rejected the login. Confirm SMTP AUTH is enabled for this account and use an app "
+                    "password when required by the account administrator."
+                )
+            else:
+                detail = "The mail server rejected the username or password. Check the SMTP credentials and send a test email."
+            raise RuntimeError(detail) from error
         return {"sent": True, "to": recipients, "from": str(config["sender_email"])}
 
     async def _transform(self, arguments: dict[str, Any]) -> Any:

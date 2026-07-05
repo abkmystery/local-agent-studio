@@ -81,7 +81,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scheduler_task.cancel()
         await providers.close()
 
-    app = FastAPI(title="Local Agent Studio", version="0.5.1", lifespan=lifespan)
+    app = FastAPI(title="Local Agent Studio", version="0.5.2", lifespan=lifespan)
     app.state.settings = settings
     app.state.database = database
     app.state.repositories = repositories
@@ -328,6 +328,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="Enter a valid SMTP server name")
         existing_password = tools.email_config.get("password", "")
         password = payload.password or str(existing_password)
+        if payload.provider == "gmail" and payload.password:
+            password = "".join(password.split())
         if not password:
             raise HTTPException(status_code=400, detail="Enter the account password or provider app password")
         public_values = {key: value for key, value in values.items() if key != "password"}
@@ -351,7 +353,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 {
                     "to": payload.to,
                     "subject": "Local Agent Studio email test",
-                    "body": "Your sending account is connected and ready for approval-gated workflows.",
+                    "body": "Your sending account is connected and ready for Local Agent Studio workflows.",
                 },
                 approved=True,
             )

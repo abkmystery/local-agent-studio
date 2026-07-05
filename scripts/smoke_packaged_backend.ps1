@@ -44,6 +44,44 @@ try {
   $models = Invoke-StudioJson -Method GET -Path '/api/models'
   $ollama = $providers | Where-Object id -eq 'ollama'
   $lmStudio = $providers | Where-Object id -eq 'lm_studio'
+  $ollamaFlowStatus = 'skipped-no-live-model'
+  $ollamaFlowOutput = ''
+
+  $ollamaModel = $models | Where-Object provider_id -eq 'ollama' | Select-Object -First 1
+  if ($ollamaModel) {
+    $liveAgent = Invoke-StudioJson -Method POST -Path '/api/agents' -Body @{
+      name = 'Packaged Ollama smoke agent'; description = 'Temporary live validation agent'
+      provider_id = 'ollama'; model_id = $ollamaModel.id
+      instructions = 'Follow the user instruction exactly and answer briefly.'
+      config = @{ temperature = 0; num_ctx = 2048; num_predict = 16 }
+    }
+    $liveWorkflow = Invoke-StudioJson -Method POST -Path '/api/workflows' -Body @{
+      name = 'Packaged live Ollama flow'; description = 'Input to live local model to output.'
+      spec = @{
+        version = '1.0'; limits = @{ max_iterations = 2; timeout_seconds = 180 }
+        nodes = @(
+          @{ id = 'input'; type = 'input'; label = 'Input'; position = @{}; config = @{} },
+          @{ id = 'agent'; type = 'agent'; label = 'Ollama'; position = @{}; config = @{ agent_id = $liveAgent.id } },
+          @{ id = 'output'; type = 'output'; label = 'Output'; position = @{}; config = @{} }
+        )
+        edges = @(
+          @{ id = 'e1'; source = 'input'; target = 'agent' },
+          @{ id = 'e2'; source = 'agent'; target = 'output' }
+        )
+      }
+    }
+    $liveRun = Invoke-StudioJson -Method POST -Path "/api/workflows/$($liveWorkflow.id)/run" -Body @{
+      input = 'Reply with only FLOW_OK'
+    }
+    for ($attempt = 0; $attempt -lt 900; $attempt++) {
+      $liveDetail = Invoke-StudioJson -Method GET -Path "/api/runs/$($liveRun.id)"
+      if ($liveDetail.status -in @('completed', 'failed', 'cancelled')) { break }
+      Start-Sleep -Milliseconds 200
+    }
+    if ($liveDetail.status -ne 'completed') { throw "Live Ollama workflow failed: $($liveDetail.error)" }
+    $ollamaFlowStatus = $liveDetail.status
+    $ollamaFlowOutput = $liveDetail.output
+  }
 
   $tools = Invoke-StudioJson -Method GET -Path '/api/tools'
   foreach ($required in @('read_file', 'create_word', 'create_excel', 'send_email')) {
@@ -102,6 +140,8 @@ try {
     ollama_models = @($models | Where-Object provider_id -eq 'ollama').Count
     lm_studio_available = $lmStudio.available
     lm_studio_detail = $lmStudio.detail
+    ollama_flow_status = $ollamaFlowStatus
+    ollama_flow_output = $ollamaFlowOutput
     tools = $tools.Count
     workflow_status = $completed.status
     word_bytes = (Get-Item $word).Length

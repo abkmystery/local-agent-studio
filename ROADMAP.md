@@ -16,5 +16,6 @@
 - Additional opt-in cloud provider adapters behind provider-neutral interfaces.
 - Windows ARM64 support.
 
-Public internet webhooks, silent consequential actions, and automatic exposure
-of local inference servers to the LAN are intentionally not planned for v1.
+Public internet webhooks, broad approval bypasses, and automatic exposure of
+local inference servers to the LAN are intentionally not planned for v1. The
+narrow automatic-email node remains an explicit workflow-author choice.

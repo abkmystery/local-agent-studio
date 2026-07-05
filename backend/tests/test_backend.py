@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import io
+import smtplib
 import sys
 import time
 import zipfile
@@ -297,6 +298,11 @@ async def test_mutating_tools_cannot_bypass_approval(tmp_path: Path) -> None:
     assert destination.read_text(encoding="utf-8") == "private"
     with pytest.raises(ApprovalRequired):
         await registry.execute("send_email", {"to": "person@example.com", "subject": "Hi", "body": "Private"})
+    with pytest.raises(ApprovalRequired):
+        await registry.execute(
+            "write_file", {"path": "still-protected.txt", "content": "No bypass"},
+            allow_without_approval=True,
+        )
     with pytest.raises(PermissionError):
         await registry.execute("http_request", {"url": "https://unapproved.example/data", "method": "GET"})
 
@@ -412,6 +418,120 @@ def test_email_configuration_encrypts_password_and_sends_test(client: TestClient
         time.sleep(0.02)
     assert detail["status"] == "completed"
     assert len(sent) == 2 and sent[1]["To"] == "workflow@example.com"
+
+    automatic = client.post("/api/workflows", json={
+        "name": "Automatic email", "description": "", "spec": {
+            "version": "1.0", "limits": {"max_iterations": 2, "timeout_seconds": 30},
+            "nodes": [
+                {"id": "input", "type": "input", "label": "Input", "position": {}, "config": {}},
+                {"id": "email", "type": "function", "label": "Email", "position": {}, "config": {
+                    "tool_id": "send_email", "approval_policy": "never", "arguments": {
+                        "to": "automatic@example.com", "subject": "Automatic result", "body": "$input",
+                    },
+                }},
+                {"id": "output", "type": "output", "label": "Output", "position": {}, "config": {}},
+            ],
+            "edges": [
+                {"id": "e1", "source": "input", "target": "email"},
+                {"id": "e2", "source": "email", "target": "output"},
+            ],
+        },
+    }, headers=HEADERS).json()
+    automatic_run = client.post(
+        f"/api/workflows/{automatic['id']}/run", json={"input": "Automatic body"}, headers=HEADERS
+    ).json()
+    for _ in range(50):
+        automatic_detail = client.get(f"/api/runs/{automatic_run['id']}", headers=HEADERS).json()
+        if automatic_detail["status"] in {"completed", "failed", "waiting_approval"}:
+            break
+        time.sleep(0.02)
+    assert automatic_detail["status"] == "completed"
+    assert len(sent) == 3 and sent[2]["To"] == "automatic@example.com"
+
+
+@pytest.mark.asyncio
+async def test_gmail_auth_error_explains_app_password(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    class RejectingSMTP:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def login(self, username, password):
+            raise smtplib.SMTPAuthenticationError(534, b"Application-specific password required")
+
+    monkeypatch.setattr("backend.app.tools.smtplib.SMTP_SSL", RejectingSMTP)
+    registry = ToolRegistry([tmp_path])
+    registry.configure_email({
+        "provider": "gmail", "host": "smtp.gmail.com", "port": 465, "security": "ssl",
+        "username": "sender@gmail.com", "password": "normal-password", "sender_email": "sender@gmail.com",
+    })
+    with pytest.raises(RuntimeError, match="Google App Password"):
+        await registry.execute(
+            "send_email", {"to": "recipient@example.com", "subject": "Test", "body": "Body"}, approved=True
+        )
+
+
+def test_cross_provider_agents_handoff_in_one_workflow(client: TestClient) -> None:
+    calls: list[tuple[str, str, str]] = []
+
+    class FakeProvider:
+        def __init__(self, provider_id: str, prefix: str, cloud: bool = False):
+            self.id = provider_id
+            self.name = provider_id
+            self.prefix = prefix
+            self.cloud = cloud
+
+        async def chat(self, model, messages, **kwargs):
+            supplied = messages[-1]["content"]
+            calls.append((self.id, model, supplied))
+            return ChatResult(content=f"{self.prefix}:{supplied}", prompt_tokens=2, completion_tokens=3)
+
+        async def close(self):
+            return None
+
+    client.app.state.providers.providers["gemini"] = FakeProvider("gemini", "cloud", cloud=True)
+    client.app.state.providers.providers["ollama"] = FakeProvider("ollama", "local")
+    gemini_agent = client.post("/api/agents", json={
+        "name": "Cloud researcher", "provider_id": "gemini", "model_id": "gemini-3.5-flash",
+        "instructions": "Research", "description": "", "config": {},
+    }, headers=HEADERS).json()
+    ollama_agent = client.post("/api/agents", json={
+        "name": "Local writer", "provider_id": "ollama", "model_id": "qwen-local",
+        "instructions": "Write", "description": "", "config": {},
+    }, headers=HEADERS).json()
+    workflow = client.post("/api/workflows", json={
+        "name": "Cloud to local handoff", "description": "", "spec": {
+            "version": "1.0", "limits": {"max_iterations": 2, "timeout_seconds": 30},
+            "nodes": [
+                {"id": "input", "type": "input", "label": "Input", "position": {}, "config": {}},
+                {"id": "cloud", "type": "agent", "label": "Cloud", "position": {}, "config": {"agent_id": gemini_agent["id"]}},
+                {"id": "local", "type": "agent", "label": "Local", "position": {}, "config": {"agent_id": ollama_agent["id"]}},
+                {"id": "output", "type": "output", "label": "Output", "position": {}, "config": {}},
+            ],
+            "edges": [
+                {"id": "e1", "source": "input", "target": "cloud"},
+                {"id": "e2", "source": "cloud", "target": "local"},
+                {"id": "e3", "source": "local", "target": "output"},
+            ],
+        },
+    }, headers=HEADERS).json()
+    run = client.post(f"/api/workflows/{workflow['id']}/run", json={"input": "start"}, headers=HEADERS).json()
+    for _ in range(100):
+        detail = client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()
+        if detail["status"] in {"completed", "failed"}:
+            break
+        time.sleep(0.02)
+    assert detail["status"] == "completed"
+    assert detail["output"] == "local:cloud:start"
+    assert calls == [
+        ("gemini", "gemini-3.5-flash", "start"),
+        ("ollama", "qwen-local", "cloud:start"),
+    ]
 
 
 def test_agentpack_excludes_paths_and_secrets(tmp_path: Path) -> None:

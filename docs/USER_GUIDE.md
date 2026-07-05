@@ -111,8 +111,9 @@ run safely.
 ### Function
 
 Choose a curated function and fill each displayed argument. Enter `$input` when
-the argument should use the previous node's result. File writes, email, and
-mutating HTTP requests cannot proceed without approval.
+the argument should use the previous node's result. File writes and mutating
+HTTP requests cannot proceed without approval. Email asks by default; each Send
+Email node can instead be explicitly set to automatic sending.
 
 Useful starter functions include:
 
@@ -121,8 +122,10 @@ Useful starter functions include:
 - **Create Word document:** creates a real `.docx` from a title and content.
 - **Create Excel workbook:** creates a real `.xlsx` from JSON rows, arrays, or
   CSV. Potential spreadsheet formulas are stored as text by default.
-- **Send email:** sends through the account configured in Settings after the
-  Runs page shows the recipient, subject, and body for approval.
+- **Send email:** sends through the account configured in Settings. Choose
+  **Ask every time** or **Send automatically for this node** in the inspector.
+  Automatic sending means any manual or scheduled run can send without another
+  prompt, so use a fixed recipient whenever possible.
 
 Paths such as `reports/summary.docx` are relative to the approved workspace
 shown in **Settings → Storage**. The app does not write elsewhere.
@@ -174,13 +177,21 @@ and downloaded models are no longer needed.
 
 1. Open **Settings → Email for workflows**.
 2. Choose Gmail, Outlook / Microsoft 365, Yahoo, or Custom SMTP.
-3. Enter the sending address, login username, and password or provider app
-   password. The password is encrypted and never displayed again.
+3. Enter the sending address, login username, and provider app password. Gmail
+   requires a 16-character Google App Password rather than the normal account
+   password. The saved secret is encrypted and never displayed again.
 4. Select **Save sending account**.
 5. Enter an address under **Send a test to** and select **Send test**.
 6. Add a Function node to a workflow and choose **Send email**. Enter the
    recipient and subject; use `$input` as the body when the prior node produces
    the message.
+7. Keep **Ask every time** for visible confirmation, or deliberately choose
+   **Send automatically for this node** when an unattended workflow needs it.
+
+Agents retain their own provider and model. To combine providers, create each
+agent with the desired model, add those agents to one workflow, and connect
+them in sequence or as branches. The workflow editor shows the provider and
+model next to every agent choice.
 
 Gmail and Yahoo usually require an app password. Microsoft 365 administrators
 may need to enable authenticated SMTP. Local Agent Studio does not weaken or

@@ -410,7 +410,16 @@ class WorkflowEngine:
                 and approval.get("tool_id") == tool_id
                 and approval.get("arguments") == arguments
             )
-            result = await self.tools.execute(tool_id, arguments, approved=approved)
+            automatic_email = (
+                tool_id == "send_email"
+                and str(node.config.get("approval_policy", "always")) == "never"
+            )
+            result = await self.tools.execute(
+                tool_id,
+                arguments,
+                approved=approved,
+                allow_without_approval=automatic_email,
+            )
             if approved:
                 state.pop("approval", None)
             return node.id, json.dumps(result, ensure_ascii=False) if not isinstance(result, str) else result, (0, 0), disabled

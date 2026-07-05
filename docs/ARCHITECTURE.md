@@ -48,7 +48,9 @@ contains-rules. Execution state is checkpointed after every level.
 
 Consequential function approvals are cryptographically stored with run state
 and logically bound to one node, tool identifier, and normalized argument set.
-The engine rechecks that binding before execution.
+The engine rechecks that binding before execution. Send Email alone supports an
+explicit per-node automatic policy for unattended workflows; the tool registry
+rejects that override for every other approval-gated function.
 
 ## Agent skill files
 

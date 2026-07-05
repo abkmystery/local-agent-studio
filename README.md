@@ -2,24 +2,38 @@
   <img src="build/icon.png" width="112" alt="Local Agent Studio logo">
 </p>
 
-<h1 align="center">Local Agent Studio</h1>
+<h1 align="center">Local Agent Studio — Local AI Agent Builder</h1>
 
 <p align="center">
-  Build AI agents, connect them into visual workflows, and run them from one approachable Windows app.
+  Build local AI agents, connect visual multi-agent workflows, and automate useful work from one approachable Windows desktop app.
 </p>
 
 <p align="center">
   <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-6257d8">
   <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-159b8e">
+  <a href="https://github.com/abkmystery/local-agent-studio/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/abkmystery/local-agent-studio?include_prereleases&label=release"></a>
+  <a href="https://github.com/abkmystery/local-agent-studio/actions/workflows/ci.yml"><img alt="Windows CI" src="https://github.com/abkmystery/local-agent-studio/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Status: early alpha" src="https://img.shields.io/badge/status-early%20alpha-f0a14a">
   <img alt="Local-first" src="https://img.shields.io/badge/AI-local--first-202332">
 </p>
 
-Local Agent Studio is a local-first multi-agent workflow builder for everyone—from people creating their first agent to developers prototyping private automation. It combines agent creation, model management, a visual workflow canvas, approvals, run history, and resource monitoring without asking users to assemble Python, Node.js, Docker, or several disconnected dashboards.
+Local Agent Studio is an open-source, local-first AI agent builder and visual multi-agent workflow automation app for Windows. It is designed for everyone—from people creating their first AI agent to developers prototyping private agentic workflows. Create agents, mix local and cloud models, connect tools, watch every workflow step, and manage models without installing Python, Node.js, or Docker.
 
 Use the built-in `llama.cpp` runtime, connect Ollama or LM Studio, or explicitly opt into Gemini 3.5 Flash. Local providers stay on the computer; cloud use is always a visible choice.
 
 ![Four-provider setup screen](docs/images/provider-setup.png)
+
+## Download for Windows
+
+> **Alpha notice:** the current installer is unsigned, so Windows SmartScreen
+> may show an unknown-publisher warning. Verify the checksum on the release page
+> and keep backups of important data.
+
+**[Download Local Agent Studio 0.5.2 for Windows](https://github.com/abkmystery/local-agent-studio/releases/download/v0.5.2/Local-Agent-Studio-0.5.2-Setup.exe)**
+
+Close any older Local Agent Studio window and tray icon, run the installer, then
+choose one of four guided AI providers. No separate Python, Node.js, or Docker
+installation is required for ordinary use.
 
 ## Why this exists
 
@@ -27,9 +41,9 @@ Creating one useful agent should not require understanding runtimes, quantizatio
 
 - **One Windows application:** Electron, the backend, and the default runtime path are packaged together.
 - **Local AI without the maze:** Hardware-aware guidance, model downloads, checksums, and safe defaults.
-- **Visual multi-agent workflows:** Sequential agents, parallel branches, routers, reviews, functions, approvals, and outputs.
+- **Visual multi-agent workflows:** Sequential and parallel agents can mix Gemini, llama.cpp, Ollama, and LM Studio in one workflow, alongside routers, reviews, functions, approvals, and outputs.
 - **Understandable execution:** Watch each node move through pending, running, approval, completed, failed, or cancelled states.
-- **Human control:** File writes, Word/Excel creation, email, and mutating HTTP requests require explicit approval tied to the exact action shown.
+- **Human control:** Consequential tools require approval tied to the exact action shown. Email asks by default and can be explicitly set to automatic per Send Email node; file writes, Python, MCP, and mutating HTTP cannot use that exception.
 - **Practical integrations:** Attach documents or images to a run, configure email, create real `.docx` and `.xlsx` files, and attach reusable skill files to individual agents.
 - **Permission layers:** Studio-wide master switches and per-agent permissions are both enforced by the backend for file, network, Python, MCP, and attachment access.
 - **Portable designs:** Export `.agentpack` workflows without secrets, local paths, model files, or run history.
@@ -46,15 +60,29 @@ Creating one useful agent should not require understanding runtimes, quantizatio
 
 The first-run wizard cannot finish until the selected provider has a runnable model. For local providers, Qwen 2.5 0.5B is offered as a small quick-start download.
 
-## Try the current alpha
+## Get started in five steps
 
 Windows 10 22H2 or Windows 11 x64 is required. A signed installer is a release goal; current alpha installers are unsigned and may trigger Microsoft SmartScreen.
 
-1. Download the newest installer from [Releases](../../releases).
+1. Download the [Windows installer](https://github.com/abkmystery/local-agent-studio/releases/download/v0.5.2/Local-Agent-Studio-0.5.2-Setup.exe).
 2. Open Local Agent Studio and review the private hardware assessment.
 3. Choose Gemini, llama.cpp, Ollama, or LM Studio.
 4. Connect/select at least one runnable model.
 5. Create the sample studio and run **Research then write** from the Workflows page.
+
+Want a fully local setup? Choose built-in llama.cpp or an existing Ollama/LM
+Studio installation. Want the quickest cloud setup? Choose Gemini and follow
+the API-key guide. Agents using different providers can work together in the
+same visual workflow.
+
+## Common use cases
+
+- Build private local AI agents with llama.cpp, Ollama, or LM Studio.
+- Connect Gemini and local LLM agents in one multi-agent workflow.
+- Create approval-aware email and document automation.
+- Read, search, and generate Word, Excel, JSON, CSV, and text files.
+- Prototype sequential agents, parallel branches, routers, reviewers, and human approvals.
+- Share reusable `.agentpack` workflow designs without bundling secrets or model files.
 
 For the full non-technical walkthrough, see the [User Guide](docs/USER_GUIDE.md).
 

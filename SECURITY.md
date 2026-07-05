@@ -33,7 +33,10 @@ encrypted run input.
 - Word and Excel creation is confined to the approved workspace and always
   requires approval. Spreadsheet strings that could become formulas are escaped.
 - HTTP is HTTPS-only; non-read methods require approval and redirects are off.
-- Email always requires approval and is unavailable until SMTP is configured.
+- Email is unavailable until SMTP is configured and asks for approval by
+  default. A workflow author can explicitly mark only a Send Email node as
+  automatic; the editor displays a warning, and that exception cannot bypass
+  approval for file writes, Python, MCP, or mutating HTTP.
 - Approval records are scoped to the exact workflow node, tool, and argument
   set shown to the user; one approval cannot authorize a sibling action.
 - Studio-wide capability switches are enforced in the backend. Per-agent

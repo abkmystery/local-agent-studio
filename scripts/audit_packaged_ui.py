@@ -148,6 +148,11 @@ def main() -> None:
             "config": {"temperature": 0.2, "num_ctx": 4096, "num_predict": 64},
         })
         del agent
+        http_json(f"{api}/api/agents", token, "POST", {
+            "name": "Cloud QA", "description": "Cross-provider UI audit", "provider_id": "gemini",
+            "model_id": "gemini-3.5-flash", "instructions": "Check cloud handoff configuration.",
+            "config": {"temperature": 0.2, "num_ctx": 4096, "num_predict": 64},
+        })
         workflow = http_json(f"{api}/api/workflows", token, "POST", {
             "name": "Run visibility", "description": "Completed run for the Runs screen.",
             "spec": {"version": "1.0", "limits": {"max_iterations": 2, "timeout_seconds": 30},
@@ -207,6 +212,11 @@ def main() -> None:
         options = cdp.evaluate("Array.from(document.querySelectorAll('.inspector select option')).map(x=>x.textContent).join('|')")
         for expected in ("Create Word document", "Create Excel workbook", "Send email", "Python code", "MCP server tool"):
             assert expected in options, f"Function picker is missing {expected}"
+        assert cdp.evaluate("(() => { const s=Array.from(document.querySelectorAll('.inspector select')).find(x=>Array.from(x.options).some(o=>o.value==='send_email')); if(!s)return false;s.value='send_email';s.dispatchEvent(new Event('change',{bubbles:true}));return true; })()")
+        cdp.wait_text("Approval before sending")
+        assert cdp.evaluate("Array.from(document.querySelectorAll('.inspector select option')).some(x=>x.value==='never'&&x.textContent.includes('automatically'))")
+        cdp.click_button("Agent"); cdp.evaluate("document.querySelector('.react-flow__node.type-agent').click();true")
+        assert cdp.evaluate("Array.from(document.querySelectorAll('.inspector select option')).some(x=>x.textContent.includes('Cloud QA')&&x.textContent.includes('gemini'))")
         cdp.evaluate("window.confirm=()=>true;true"); cdp.click_button("Delete")
         cdp.wait_text("Workflow deleted."); checks.append("Workflow editor")
 

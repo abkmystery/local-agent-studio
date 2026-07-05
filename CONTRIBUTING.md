@@ -9,7 +9,9 @@ Windows, including people without a software-development background.
 2. Keep cloud providers optional, explicit, and clearly labelled at the point
    where data leaves the computer.
 3. Do not expose inference servers beyond `127.0.0.1`.
-4. Require approval for writes, messages, and mutating network actions.
+4. Require approval for writes and mutating network actions. Email must ask by
+   default; its explicit per-node automatic option must stay visible, narrow,
+   and covered by execution tests.
 5. Add or update tests for behavior changes.
 6. Run the validation commands in the README.
 7. For installer or desktop-interaction changes, run the packaged backend smoke
